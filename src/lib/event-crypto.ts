@@ -24,7 +24,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  return bytes.buffer;
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 }
 
 /**
@@ -80,7 +80,7 @@ export async function encryptField(
   // Encrypt the plaintext with AES-GCM
   const encoder = new TextEncoder();
   const encryptedData = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as Uint8Array<ArrayBuffer> },
     aesKey,
     encoder.encode(plaintext)
   );
@@ -98,7 +98,7 @@ export async function encryptField(
 
   return {
     ciphertext: arrayBufferToBase64(encryptedData),
-    iv: arrayBufferToBase64(iv),
+    iv: arrayBufferToBase64(iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength)),
     encryptedKey: arrayBufferToBase64(encryptedKey),
   };
 }
@@ -140,9 +140,10 @@ export async function decryptField(
   // Decrypt ciphertext with AES key
   const ciphertextBuffer = base64ToArrayBuffer(encrypted.ciphertext);
   const ivBuffer = base64ToArrayBuffer(encrypted.iv);
+  const ivArray = new Uint8Array(ivBuffer);
 
   const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
+    { name: "AES-GCM", iv: ivArray as Uint8Array<ArrayBuffer> },
     aesKey,
     ciphertextBuffer
   );
