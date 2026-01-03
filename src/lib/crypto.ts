@@ -20,7 +20,7 @@ export async function deriveKey(
   return await crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: salt,
+      salt: salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer,
       iterations: 310000, // OWASP 2024 recommendation
       hash: "SHA-256",
     },
@@ -45,7 +45,7 @@ export async function encryptEntry(
   const plaintext = enc.encode(JSON.stringify(entry));
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as Uint8Array<ArrayBuffer> },
     key,
     plaintext
   );
@@ -65,14 +65,16 @@ export async function decryptEntry<T = Record<string, unknown>>(
   salt: Uint8Array
 ): Promise<T> {
   const key = await deriveKey(password, salt);
+  const ivArray = new Uint8Array(encrypted.iv);
+  const ciphertextArray = new Uint8Array(encrypted.ciphertext);
 
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: new Uint8Array(encrypted.iv),
+      iv: ivArray as Uint8Array<ArrayBuffer>,
     },
     key,
-    new Uint8Array(encrypted.ciphertext)
+    ciphertextArray as Uint8Array<ArrayBuffer>
   );
 
   const dec = new TextDecoder();
@@ -100,7 +102,7 @@ export async function deriveAuthKey(
   const bits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
-      salt: salt,
+      salt: salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer,
       iterations: 310000,
       hash: "SHA-256",
     },
@@ -213,7 +215,7 @@ export async function encryptPrivateKey(
   const plaintext = enc.encode(JSON.stringify(privateKey));
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as Uint8Array<ArrayBuffer> },
     key,
     plaintext
   );
@@ -237,14 +239,16 @@ export async function decryptPrivateKey(
   salt: Uint8Array
 ): Promise<JsonWebKey> {
   const key = await deriveKey(password, salt);
+  const ivArray = new Uint8Array(encrypted.iv);
+  const ciphertextArray = new Uint8Array(encrypted.ciphertext);
 
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: new Uint8Array(encrypted.iv),
+      iv: ivArray as Uint8Array<ArrayBuffer>,
     },
     key,
-    new Uint8Array(encrypted.ciphertext)
+    ciphertextArray as Uint8Array<ArrayBuffer>
   );
 
   const dec = new TextDecoder();
@@ -324,12 +328,13 @@ export async function decryptEmailField(
   // Decrypt ciphertext with AES key
   const ciphertextBuffer = base64ToArrayBuffer(encrypted.ciphertext);
   const ivBuffer = base64ToArrayBuffer(encrypted.iv);
+  const ivArray = new Uint8Array(ivBuffer);
 
   // The ciphertext includes the auth tag at the end (16 bytes)
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: new Uint8Array(ivBuffer),
+      iv: ivArray as Uint8Array<ArrayBuffer>,
     },
     aesKey,
     ciphertextBuffer
