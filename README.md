@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sigil Dashboard
+
+A zero-knowledge SaaS dashboard for managing encrypted email aliases. Built with Next.js 15, TypeScript, and Tailwind CSS.
+
+## Features
+
+- **Email/Password Authentication** - Traditional login with email and password
+- **Master Password Encryption** - Zero-knowledge encryption using AES-256-GCM
+- **Generate Aliases** - Create random @subkontinent.com email addresses
+- **Inbox** - View emails received by your aliases
+- **Alias Management** - List, copy, and delete aliases
+
+## Architecture
+
+The dashboard uses a two-password system:
+
+1. **Account Password** - Stored (hashed) on the server for authentication
+2. **Master Password** - Never leaves your device, used to encrypt/decrypt data
+
+```
+┌──────────────────┐     ┌─────────────────────┐
+│  Next.js Client  │────▶│  zero-knowladge-vault│
+│                  │     │      Backend         │
+│  - Crypto.ts     │     │                     │
+│  - Local encrypt │     │  - Auth (JWT)       │
+│  - Master PW     │     │  - Aliases API      │
+│                  │     │  - Mailgun webhook  │
+└──────────────────┘     └─────────────────────┘
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- The `zero-knowladge-vault` backend running
+
+### Installation
 
 ```bash
+# Clone and install
+cd sigil-dashboard
+npm install
+
+# Configure environment
+cp .env.local.example .env.local
+# Edit .env.local with your backend URL
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env.local` file:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+```
 
-## Learn More
+For production:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+NEXT_PUBLIC_API_URL=https://your-backend-url.com/api/v1
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── auth/
+│   │   ├── login/page.tsx      # Login with email/password + master PW
+│   │   └── register/page.tsx   # Account creation
+│   ├── dashboard/
+│   │   ├── page.tsx            # Dashboard overview
+│   │   ├── inbox/page.tsx      # Email inbox
+│   │   ├── aliases/page.tsx    # Alias management
+│   │   └── settings/page.tsx   # Account settings
+│   ├── layout.tsx
+│   └── page.tsx                # Landing page
+├── components/
+│   ├── Sidebar.tsx
+│   └── GenerateAliasModal.tsx
+├── hooks/
+│   └── useAuth.ts              # Auth state management
+└── lib/
+    ├── crypto.ts               # Client-side encryption
+    ├── api.ts                  # API client
+    ├── auth.ts                 # Auth utilities
+    └── utils.ts                # Helpers
+```
 
-## Deploy on Vercel
+## Security
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- All sensitive data is encrypted client-side before being sent to the server
+- Master password is stored only in `sessionStorage` (cleared on tab close)
+- Server stores only the hash of the derived auth key, never the master password
+- AES-256-GCM encryption with PBKDF2 key derivation (310,000 iterations)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## API Endpoints
+
+The dashboard communicates with these backend endpoints:
+
+### Auth
+- `POST /auth/register` - Register with email, password, salt, authKeyHash
+- `POST /auth/login` - Login with email/password
+- `POST /auth/verify-master` - Verify master password
+- `GET /auth/me` - Get current user
+
+### Aliases
+- `GET /aliases/user-aliases` - Get user's aliases
+- `POST /aliases/generate` - Generate new alias
+- `POST /aliases/sync-aliases` - Sync aliases to server
+- `DELETE /aliases/:id` - Delete an alias
+
+### Emails
+- `GET /emails/alias-emails/:aliasId` - Get emails for an alias
+- `GET /emails/:id` - Get single email
+
+## Development
+
+```bash
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Lint
+npm run lint
+```
+
+## License
+
+MIT
