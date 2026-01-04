@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu, Shield } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -12,7 +12,14 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, isVaultUnlocked, isLoading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -41,8 +48,29 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen gradient-mesh">
-      <Sidebar />
-      <main className="ml-64 p-8">
+      {/* Mobile Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--card)] border-b border-[var(--border)] flex items-center justify-between px-4 z-30">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/30 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-[var(--primary)]" />
+          </div>
+          <span className="font-bold">
+            <span className="text-[var(--primary)]">Sigil</span>
+            <span className="text-[var(--muted-foreground)]">.vault</span>
+          </span>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </header>
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Main content */}
+      <main className="lg:ml-64 pt-16 lg:pt-0 p-4 md:p-6 lg:p-8 min-h-screen">
         {children}
       </main>
     </div>
