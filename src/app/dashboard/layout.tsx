@@ -70,7 +70,7 @@ export default function DashboardLayout({
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content */}
-      <main className="lg:ml-64 pt-16 lg:pt-0 p-4 md:p-6 lg:p-8 min-h-screen">
+      <main className="lg:ml-64 pt-20 lg:pt-8 px-4 pb-4 md:px-6 md:pb-6 lg:px-8 lg:pb-8 min-h-screen">
         {children}
       </main>
     </div>
