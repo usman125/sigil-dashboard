@@ -11,18 +11,24 @@ import {
   Loader2,
   Search,
   RefreshCw,
+  Forward,
+  Bell,
+  Mail,
 } from "lucide-react";
 import { aliasesApi, Alias } from "@/lib/api";
 import { decryptEntry } from "@/lib/crypto";
 import { getMasterPassword, getSaltUint8Array } from "@/lib/auth";
 import { formatDate, copyToClipboard, cn } from "@/lib/utils";
 import { GenerateAliasModal } from "@/components/GenerateAliasModal";
+import ForwardingSettings from "@/components/email/ForwardingSettings";
 
 interface DecryptedAlias {
   _id: string;
   aliasId: string;
   email: string;
   domain?: string;
+  forwardTo?: string;
+  forwardMode?: "disabled" | "plaintext" | "notify";
   createdAt: string;
 }
 
@@ -35,6 +41,7 @@ export default function AliasesPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [forwardingAlias, setForwardingAlias] = useState<DecryptedAlias | null>(null);
 
   // Open modal if generate=true in URL params
   useEffect(() => {
@@ -74,6 +81,8 @@ export default function AliasesPage() {
             aliasId: alias.aliasId,
             email: decrypted.email,
             domain: decrypted.domain || alias.domain,
+            forwardTo: alias.forwardTo,
+            forwardMode: alias.forwardMode,
             createdAt: alias.createdAt,
           });
         } catch {
@@ -229,7 +238,36 @@ export default function AliasesPage() {
                     {formatDate(alias.createdAt).split(",")[0]}
                   </span>
                 </div>
-                <div className="col-span-2 flex items-center justify-end gap-2">
+                <div className="col-span-2 flex items-center justify-end gap-1">
+                  {/* Forwarding indicator */}
+                  {alias.forwardMode && alias.forwardMode !== "disabled" && (
+                    <span
+                      className={cn(
+                        "p-1.5 rounded-lg",
+                        alias.forwardMode === "notify"
+                          ? "text-[var(--primary)]"
+                          : "text-amber-500"
+                      )}
+                      title={
+                        alias.forwardMode === "notify"
+                          ? "Notifications enabled"
+                          : "Forwarding enabled"
+                      }
+                    >
+                      {alias.forwardMode === "notify" ? (
+                        <Bell className="w-4 h-4" />
+                      ) : (
+                        <Mail className="w-4 h-4" />
+                      )}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setForwardingAlias(alias)}
+                    className="p-2 rounded-lg hover:bg-[var(--muted)] transition-colors"
+                    title="Forwarding settings"
+                  >
+                    <Forward className="w-4 h-4 text-[var(--muted-foreground)]" />
+                  </button>
                   <button
                     onClick={() => handleCopy(alias.email, alias._id)}
                     className="p-2 rounded-lg hover:bg-[var(--muted)] transition-colors"
@@ -273,6 +311,19 @@ export default function AliasesPage() {
         onClose={() => setShowGenerateModal(false)}
         onSuccess={loadAliases}
       />
+
+      {/* Forwarding Settings Modal */}
+      {forwardingAlias && (
+        <ForwardingSettings
+          isOpen={!!forwardingAlias}
+          onClose={() => setForwardingAlias(null)}
+          aliasId={forwardingAlias._id}
+          aliasEmail={forwardingAlias.email}
+          currentForwardTo={forwardingAlias.forwardTo}
+          currentForwardMode={forwardingAlias.forwardMode}
+          onUpdated={loadAliases}
+        />
+      )}
     </div>
   );
 }

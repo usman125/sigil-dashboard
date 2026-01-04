@@ -32,6 +32,8 @@ export interface Alias {
   ciphertext: number[];
   iv: number[];
   domain?: string;
+  forwardTo?: string;
+  forwardMode?: "disabled" | "plaintext" | "notify";
   createdAt: string;
 }
 
@@ -53,6 +55,8 @@ export interface Email {
   bodyHtml?: EncryptedEmailField | string | null;
   receivedAt: string;
   isEncrypted?: boolean;
+  type?: "received" | "sent";
+  replyTo?: string;
 }
 
 export interface GenerateAliasResponse {
@@ -230,6 +234,21 @@ export const aliasesApi = {
       method: "DELETE",
     });
   },
+
+  getAlias: async (id: string): Promise<{ success: boolean; data: Alias }> => {
+    return apiRequest(`/aliases/${id}`);
+  },
+
+  updateForwarding: async (
+    id: string,
+    forwardTo: string | null,
+    forwardMode: "disabled" | "plaintext" | "notify"
+  ): Promise<{ success: boolean; data: { _id: string; forwardTo: string | null; forwardMode: string } }> => {
+    return apiRequest(`/aliases/${id}/forwarding`, {
+      method: "PATCH",
+      body: JSON.stringify({ forwardTo, forwardMode }),
+    });
+  },
 };
 
 // Emails API
@@ -242,6 +261,25 @@ export const emailsApi = {
 
   getEmail: async (id: string): Promise<{ success: boolean; data: Email[] }> => {
     return apiRequest(`/emails/${id}`);
+  },
+
+  getSentEmails: async (): Promise<{ success: boolean; data: Email[] }> => {
+    return apiRequest("/emails/sent");
+  },
+
+  sendEmail: async (params: {
+    aliasId: string;
+    aliasEmail: string;
+    to: string;
+    subject: string;
+    bodyPlain: string;
+    bodyHtml?: string;
+    replyToEmailId?: string;
+  }): Promise<{ success: boolean; data: Email; message: string }> => {
+    return apiRequest("/emails/send", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
   },
 };
 

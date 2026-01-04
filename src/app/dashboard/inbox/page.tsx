@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, ArrowLeft, AtSign, Loader2, RefreshCw, Lock, Shield } from "lucide-react";
+import { Mail, ArrowLeft, AtSign, Loader2, RefreshCw, Lock, Shield, PenSquare, Reply, Send } from "lucide-react";
 import { aliasesApi, emailsApi, Email, EncryptedEmailField } from "@/lib/api";
 import { decryptEntry, decryptEmail, EncryptedEmailField as CryptoEncryptedField } from "@/lib/crypto";
 import { getMasterPassword, getSaltUint8Array, getPrivateKeyForDecryption } from "@/lib/auth";
 import { formatDate, cn } from "@/lib/utils";
 import DOMPurify from "dompurify";
+import ComposeModal from "@/components/email/ComposeModal";
 
 interface DecryptedAlias {
   _id: string;
@@ -32,6 +33,8 @@ export default function InboxPage() {
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [decryptError, setDecryptError] = useState<string | null>(null);
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [replyData, setReplyData] = useState<{ emailId: string; to: string; subject: string } | undefined>(undefined);
 
   useEffect(() => {
     loadAliases();
@@ -180,6 +183,28 @@ export default function InboxPage() {
     setIsRefreshing(false);
   };
 
+  const handleCompose = () => {
+    setReplyData(undefined);
+    setIsComposeOpen(true);
+  };
+
+  const handleReply = () => {
+    if (!selectedEmail || !decryptedContent) return;
+    setReplyData({
+      emailId: selectedEmail._id,
+      to: selectedEmail.from,
+      subject: decryptedContent.subject,
+    });
+    setIsComposeOpen(true);
+  };
+
+  const handleEmailSent = () => {
+    // Optionally refresh the email list after sending
+    if (selectedAlias) {
+      handleSelectAlias(selectedAlias);
+    }
+  };
+
   const sanitizeHtml = (html: string): string => {
     if (typeof window !== "undefined") {
       return DOMPurify.sanitize(html, {
@@ -224,16 +249,27 @@ export default function InboxPage() {
             View emails received by your aliases
           </p>
         </div>
-        {selectedAlias && (
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--muted)] hover:bg-[var(--border)] rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-            Refresh
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {selectedAlias && (
+            <>
+              <button
+                onClick={handleCompose}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary)]/90 transition-colors"
+              >
+                <PenSquare className="w-4 h-4" />
+                Compose
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--muted)] hover:bg-[var(--border)] rounded-lg transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                Refresh
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
@@ -370,21 +406,38 @@ export default function InboxPage() {
               <>
                 {/* Email Header */}
                 <div className="p-6 border-b border-[var(--border)]">
-                  <button
-                    onClick={() => {
-                      setSelectedEmail(null);
-                      setDecryptedContent(null);
-                    }}
-                    className="flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-4 text-sm"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to list
-                  </button>
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => {
+                        setSelectedEmail(null);
+                        setDecryptedContent(null);
+                      }}
+                      className="flex items-center gap-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-sm"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Back to list
+                    </button>
+                    {selectedEmail.type !== "sent" && (
+                      <button
+                        onClick={handleReply}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-[var(--muted)] hover:bg-[var(--border)] rounded-lg transition-colors text-sm"
+                      >
+                        <Reply className="w-4 h-4" />
+                        Reply
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mb-3">
                     {selectedEmail.isEncrypted && (
                       <div className="flex items-center gap-1 text-xs text-[var(--success)] bg-[var(--success)]/10 px-2 py-1 rounded-full">
                         <Shield className="w-3 h-3" />
                         Encrypted
+                      </div>
+                    )}
+                    {selectedEmail.type === "sent" && (
+                      <div className="flex items-center gap-1 text-xs text-[var(--primary)] bg-[var(--primary)]/10 px-2 py-1 rounded-full">
+                        <Send className="w-3 h-3" />
+                        Sent
                       </div>
                     )}
                   </div>
@@ -422,6 +475,21 @@ export default function InboxPage() {
           </div>
         </div>
       </div>
+
+      {/* Compose Modal */}
+      {selectedAlias && (
+        <ComposeModal
+          isOpen={isComposeOpen}
+          onClose={() => {
+            setIsComposeOpen(false);
+            setReplyData(undefined);
+          }}
+          aliasId={selectedAlias._id}
+          aliasEmail={selectedAlias.email}
+          replyTo={replyData}
+          onSent={handleEmailSent}
+        />
+      )}
     </div>
   );
 }
