@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Send, Loader2 } from "lucide-react";
 import { emailsApi } from "@/lib/api";
 
@@ -25,13 +25,22 @@ export default function ComposeModal({
   replyTo,
   onSent,
 }: ComposeModalProps) {
-  const [to, setTo] = useState(replyTo?.to || "");
-  const [subject, setSubject] = useState(
-    replyTo?.subject ? `Re: ${replyTo.subject}` : ""
-  );
+  const [to, setTo] = useState("");
+  const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset form when modal opens or replyTo changes
+  useEffect(() => {
+    if (isOpen) {
+      setTo(replyTo?.to || "");
+      setSubject(replyTo?.subject ? `Re: ${replyTo.subject}` : "");
+      setBody("");
+      setError(null);
+      console.log("📝 Compose modal opened:", { aliasId, aliasEmail, replyTo });
+    }
+  }, [isOpen, replyTo, aliasId, aliasEmail]);
 
   if (!isOpen) return null;
 
@@ -51,15 +60,20 @@ export default function ComposeModal({
     setIsSending(true);
     setError(null);
 
+    const payload = {
+      aliasId,
+      aliasEmail,
+      to,
+      subject,
+      bodyPlain: body,
+      replyToEmailId: replyTo?.emailId,
+    };
+
+    console.log("📤 Sending email with payload:", payload);
+
     try {
-      await emailsApi.sendEmail({
-        aliasId,
-        aliasEmail,
-        to,
-        subject,
-        bodyPlain: body,
-        replyToEmailId: replyTo?.emailId,
-      });
+      const response = await emailsApi.sendEmail(payload);
+      console.log("✅ Email sent successfully:", response);
 
       // Reset form and close
       setTo("");
@@ -68,6 +82,7 @@ export default function ComposeModal({
       onSent?.();
       onClose();
     } catch (err) {
+      console.error("❌ Failed to send email:", err);
       setError(err instanceof Error ? err.message : "Failed to send email");
     } finally {
       setIsSending(false);
@@ -76,10 +91,6 @@ export default function ComposeModal({
 
   const handleClose = () => {
     if (!isSending) {
-      setTo(replyTo?.to || "");
-      setSubject(replyTo?.subject ? `Re: ${replyTo.subject}` : "");
-      setBody("");
-      setError(null);
       onClose();
     }
   };
