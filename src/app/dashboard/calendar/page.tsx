@@ -10,6 +10,8 @@ import {
   EyeOff,
   Trash2,
   Settings,
+  Menu,
+  X,
 } from "lucide-react";
 import {
   calendarApi,
@@ -230,38 +232,70 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[600px]">
+      <div className="flex items-center justify-center h-[400px] md:h-[600px]">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
+    <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-120px)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Calendar</h1>
-          <p className="text-[var(--muted-foreground)]">
+          <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Calendar</h1>
+          <p className="text-sm md:text-base text-[var(--muted-foreground)]">
             Manage your events and schedule
           </p>
         </div>
-        <button
-          onClick={() => handleCreateEvent(new Date())}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          New Event
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Mobile sidebar toggle */}
+          <button
+            onClick={() => setShowCalendarList(!showCalendarList)}
+            className="lg:hidden flex items-center gap-2 px-3 py-2 bg-[var(--muted)] rounded-lg hover:bg-[var(--border)] transition-colors"
+          >
+            <Menu className="w-4 h-4" />
+            <span className="text-sm">Calendars</span>
+          </button>
+          <button
+            onClick={() => handleCreateEvent(new Date())}
+            className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Event</span>
+            <span className="sm:hidden">New</span>
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 flex gap-6 min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 min-h-0 relative">
         {/* Sidebar - Calendar List */}
+        {/* Mobile: Overlay, Desktop: Sidebar */}
         {showCalendarList && (
-          <div className="w-64 flex-shrink-0">
-            <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 h-full">
-              <div className="flex items-center justify-between mb-4 relative">
-                <h3 className="font-semibold">My Calendars</h3>
+          <>
+            {/* Mobile overlay backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setShowCalendarList(false)}
+            />
+            <div className={cn(
+              "lg:w-64 flex-shrink-0 z-50",
+              // Mobile: Fixed overlay
+              "fixed inset-y-0 left-0 w-72 lg:relative lg:inset-auto"
+            )}>
+              <div className="bg-[var(--card)] rounded-none lg:rounded-2xl border-r lg:border border-[var(--border)] p-4 h-full overflow-y-auto">
+                {/* Mobile close button */}
+                <div className="flex items-center justify-between mb-4 lg:hidden">
+                  <h3 className="font-semibold">Calendars</h3>
+                  <button
+                    onClick={() => setShowCalendarList(false)}
+                    className="p-2 hover:bg-[var(--muted)] rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              <div className="flex items-center justify-between mb-4 relative lg:block">
+                <h3 className="font-semibold hidden lg:block">My Calendars</h3>
                 <button
                   onClick={() => setIsCreatingCalendar(!isCreatingCalendar)}
                   className={cn(
@@ -417,7 +451,13 @@ export default function CalendarPage() {
                     .map((event) => (
                       <div
                         key={event._id}
-                        onClick={() => handleEventClick(event)}
+                        onClick={() => {
+                          handleEventClick(event);
+                          // Close sidebar on mobile after selecting
+                          if (window.innerWidth < 1024) {
+                            setShowCalendarList(false);
+                          }
+                        }}
                         className="p-2 rounded-lg hover:bg-[var(--muted)] cursor-pointer transition-colors"
                       >
                         <div
@@ -455,8 +495,9 @@ export default function CalendarPage() {
                   )}
                 </div>
               </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Main Calendar View */}

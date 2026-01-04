@@ -85,6 +85,7 @@ function formatTime(date: Date): string {
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -166,69 +167,69 @@ export default function CalendarView({
   return (
     <div className="flex flex-col h-full">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        {/* Navigation Row */}
+        <div className="flex items-center gap-2 md:gap-4">
           <button
             onClick={goToToday}
-            className="px-4 py-2 text-sm font-medium bg-[var(--muted)] hover:bg-[var(--border)] rounded-lg transition-colors"
+            className="px-3 md:px-4 py-2 text-sm font-medium bg-[var(--muted)] hover:bg-[var(--border)] rounded-lg transition-colors"
           >
             Today
           </button>
           <div className="flex items-center gap-1">
             <button
               onClick={goToPrevious}
-              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
+              className="p-1.5 md:p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
             </button>
             <button
               onClick={goToNext}
-              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
+              className="p-1.5 md:p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
-          <h2 className="text-xl font-semibold">{headerTitle}</h2>
+          <h2 className="text-base md:text-xl font-semibold truncate">{headerTitle}</h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* View Mode Buttons */}
-          <div className="flex bg-[var(--muted)] rounded-lg p-1">
-            {(["month", "week", "day"] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => onViewModeChange(mode)}
-                className={cn(
-                  "px-3 py-1.5 text-sm font-medium rounded-md transition-colors capitalize",
-                  viewMode === mode
-                    ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
-                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                )}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
+        {/* View Mode Buttons */}
+        <div className="flex bg-[var(--muted)] rounded-lg p-1 self-start sm:self-auto">
+          {(["month", "week", "day"] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => onViewModeChange(mode)}
+              className={cn(
+                "px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium rounded-md transition-colors capitalize",
+                viewMode === mode
+                  ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              )}
+            >
+              {mode}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Month View */}
       {viewMode === "month" && (
-        <div className="flex-1 bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden">
+        <div className="flex-1 bg-[var(--card)] rounded-xl md:rounded-2xl border border-[var(--border)] overflow-hidden">
           {/* Weekday Headers */}
           <div className="grid grid-cols-7 border-b border-[var(--border)]">
-            {WEEKDAYS.map((day) => (
+            {WEEKDAYS.map((day, idx) => (
               <div
                 key={day}
-                className="py-3 text-center text-sm font-medium text-[var(--muted-foreground)]"
+                className="py-2 md:py-3 text-center text-xs md:text-sm font-medium text-[var(--muted-foreground)]"
               >
-                {day}
+                <span className="hidden sm:inline">{day}</span>
+                <span className="sm:hidden">{WEEKDAYS_SHORT[idx]}</span>
               </div>
             ))}
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 grid-rows-6 h-[calc(100%-44px)]">
+          <div className="grid grid-cols-7 grid-rows-6 h-[calc(100%-36px)] md:h-[calc(100%-44px)]">
             {days.map((day, index) => {
               const dayEvents = getEventsForDay(events, day);
               const isCurrentMonth = day.getMonth() === currentDate.getMonth();
@@ -239,14 +240,14 @@ export default function CalendarView({
                   key={index}
                   onClick={() => onCreateEvent(day)}
                   className={cn(
-                    "border-b border-r border-[var(--border)] p-1 min-h-[100px] cursor-pointer hover:bg-[var(--muted)]/50 transition-colors",
+                    "border-b border-r border-[var(--border)] p-0.5 md:p-1 min-h-[60px] md:min-h-[100px] cursor-pointer hover:bg-[var(--muted)]/50 transition-colors",
                     !isCurrentMonth && "bg-[var(--muted)]/30"
                   )}
                 >
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-0.5 md:mb-1">
                     <span
                       className={cn(
-                        "w-7 h-7 flex items-center justify-center text-sm rounded-full",
+                        "w-5 h-5 md:w-7 md:h-7 flex items-center justify-center text-xs md:text-sm rounded-full",
                         isToday
                           ? "bg-[var(--primary)] text-white font-semibold"
                           : !isCurrentMonth
@@ -257,41 +258,58 @@ export default function CalendarView({
                       {day.getDate()}
                     </span>
                     {dayEvents.length > 0 && (
-                      <span className="text-xs text-[var(--muted-foreground)]">
+                      <span className="text-[10px] md:text-xs text-[var(--muted-foreground)]">
                         {dayEvents.length}
                       </span>
                     )}
                   </div>
-                  <div className="space-y-1 overflow-hidden">
-                    {dayEvents.slice(0, 3).map((event) => (
+                  {/* Events - Hide on very small screens, show dots instead */}
+                  <div className="hidden sm:block space-y-0.5 md:space-y-1 overflow-hidden">
+                    {dayEvents.slice(0, 2).map((event) => (
                       <div
                         key={event._id}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick(event);
                         }}
-                        className="text-xs px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80"
+                        className="text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80"
                         style={{
                           backgroundColor: `${event.calendarColor}20`,
-                          borderLeft: `3px solid ${event.calendarColor}`,
+                          borderLeft: `2px solid ${event.calendarColor}`,
                         }}
                       >
-                        {event.isAllDay ? (
-                          event.title
-                        ) : (
-                          <>
-                            <span className="font-medium">
-                              {formatTime(event.startTime)}
-                            </span>{" "}
-                            {event.title}
-                          </>
-                        )}
+                        <span className="hidden md:inline">
+                          {event.isAllDay ? (
+                            event.title
+                          ) : (
+                            <>
+                              <span className="font-medium">
+                                {formatTime(event.startTime)}
+                              </span>{" "}
+                              {event.title}
+                            </>
+                          )}
+                        </span>
+                        <span className="md:hidden truncate">{event.title}</span>
                       </div>
                     ))}
-                    {dayEvents.length > 3 && (
-                      <div className="text-xs text-[var(--muted-foreground)] px-1">
-                        +{dayEvents.length - 3} more
+                    {dayEvents.length > 2 && (
+                      <div className="text-[10px] md:text-xs text-[var(--muted-foreground)] px-1">
+                        +{dayEvents.length - 2}
                       </div>
+                    )}
+                  </div>
+                  {/* Mobile: Show dots for events */}
+                  <div className="sm:hidden flex gap-0.5 flex-wrap">
+                    {dayEvents.slice(0, 3).map((event) => (
+                      <div
+                        key={event._id}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: event.calendarColor }}
+                      />
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <span className="text-[8px] text-[var(--muted-foreground)]">+</span>
                     )}
                   </div>
                 </div>
@@ -303,24 +321,25 @@ export default function CalendarView({
 
       {/* Week View */}
       {viewMode === "week" && (
-        <div className="flex-1 bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden flex flex-col">
+        <div className="flex-1 bg-[var(--card)] rounded-xl md:rounded-2xl border border-[var(--border)] overflow-hidden flex flex-col">
           {/* Weekday Headers */}
           <div className="grid grid-cols-8 border-b border-[var(--border)]">
-            <div className="py-3 px-2 text-center text-sm font-medium text-[var(--muted-foreground)]" />
+            <div className="py-2 md:py-3 px-1 md:px-2 text-center text-xs md:text-sm font-medium text-[var(--muted-foreground)]" />
             {days.map((day, index) => (
               <div
                 key={index}
                 className={cn(
-                  "py-3 text-center border-l border-[var(--border)]",
+                  "py-1.5 md:py-3 text-center border-l border-[var(--border)]",
                   isSameDay(day, today) && "bg-[var(--primary)]/10"
                 )}
               >
-                <div className="text-sm font-medium text-[var(--muted-foreground)]">
-                  {WEEKDAYS[day.getDay()]}
+                <div className="text-[10px] md:text-sm font-medium text-[var(--muted-foreground)]">
+                  <span className="hidden sm:inline">{WEEKDAYS[day.getDay()]}</span>
+                  <span className="sm:hidden">{WEEKDAYS_SHORT[day.getDay()]}</span>
                 </div>
                 <div
                   className={cn(
-                    "text-lg font-semibold",
+                    "text-sm md:text-lg font-semibold",
                     isSameDay(day, today) && "text-[var(--primary)]"
                   )}
                 >
@@ -331,14 +350,14 @@ export default function CalendarView({
           </div>
 
           {/* Time Grid */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-8">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="grid grid-cols-8 min-w-[400px]">
               {/* Time labels */}
               <div className="border-r border-[var(--border)]">
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="h-12 text-xs text-[var(--muted-foreground)] text-right pr-2 pt-1"
+                    className="h-10 md:h-12 text-[10px] md:text-xs text-[var(--muted-foreground)] text-right pr-1 md:pr-2 pt-1"
                   >
                     {hour === 0 ? "" : `${hour}:00`}
                   </div>
@@ -358,7 +377,7 @@ export default function CalendarView({
                     {hours.map((hour) => (
                       <div
                         key={hour}
-                        className="h-12 border-b border-[var(--border)] hover:bg-[var(--muted)]/30 cursor-pointer"
+                        className="h-10 md:h-12 border-b border-[var(--border)] hover:bg-[var(--muted)]/30 cursor-pointer"
                       />
                     ))}
 
@@ -370,8 +389,8 @@ export default function CalendarView({
                       const endHour =
                         event.endTime.getHours() +
                         event.endTime.getMinutes() / 60;
-                      const top = startHour * 48; // 48px per hour (h-12)
-                      const height = Math.max((endHour - startHour) * 48, 24);
+                      const top = startHour * 40; // 40px per hour on mobile (h-10)
+                      const height = Math.max((endHour - startHour) * 40, 20);
 
                       if (event.isAllDay) return null;
 
@@ -382,16 +401,16 @@ export default function CalendarView({
                             e.stopPropagation();
                             onEventClick(event);
                           }}
-                          className="absolute left-0.5 right-0.5 rounded px-1 py-0.5 text-xs overflow-hidden cursor-pointer hover:opacity-80"
+                          className="absolute left-0.5 right-0.5 rounded px-0.5 md:px-1 py-0.5 text-[10px] md:text-xs overflow-hidden cursor-pointer hover:opacity-80"
                           style={{
                             top: `${top}px`,
                             height: `${height}px`,
                             backgroundColor: `${event.calendarColor}30`,
-                            borderLeft: `3px solid ${event.calendarColor}`,
+                            borderLeft: `2px solid ${event.calendarColor}`,
                           }}
                         >
                           <div className="font-medium truncate">{event.title}</div>
-                          <div className="text-[var(--muted-foreground)]">
+                          <div className="text-[var(--muted-foreground)] hidden md:block">
                             {formatTime(event.startTime)}
                           </div>
                         </div>
@@ -407,7 +426,7 @@ export default function CalendarView({
 
       {/* Day View */}
       {viewMode === "day" && (
-        <div className="flex-1 bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden flex flex-col">
+        <div className="flex-1 bg-[var(--card)] rounded-xl md:rounded-2xl border border-[var(--border)] overflow-hidden flex flex-col">
           {/* All-day events */}
           <div className="border-b border-[var(--border)] p-2 min-h-[40px]">
             <div className="text-xs text-[var(--muted-foreground)] mb-1">All day</div>
@@ -434,11 +453,11 @@ export default function CalendarView({
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-12 relative">
               {/* Time labels */}
-              <div className="col-span-1 border-r border-[var(--border)]">
+              <div className="col-span-2 md:col-span-1 border-r border-[var(--border)]">
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="h-16 text-xs text-[var(--muted-foreground)] text-right pr-2 pt-1"
+                    className="h-12 md:h-16 text-[10px] md:text-xs text-[var(--muted-foreground)] text-right pr-1 md:pr-2 pt-1"
                   >
                     {hour === 0 ? "" : `${hour}:00`}
                   </div>
@@ -446,7 +465,7 @@ export default function CalendarView({
               </div>
 
               {/* Day column */}
-              <div className="col-span-11 relative">
+              <div className="col-span-10 md:col-span-11 relative">
                 {/* Hour cells */}
                 {hours.map((hour) => (
                   <div
@@ -456,7 +475,7 @@ export default function CalendarView({
                       date.setHours(hour, 0, 0, 0);
                       onCreateEvent(date);
                     }}
-                    className="h-16 border-b border-[var(--border)] hover:bg-[var(--muted)]/30 cursor-pointer"
+                    className="h-12 md:h-16 border-b border-[var(--border)] hover:bg-[var(--muted)]/30 cursor-pointer"
                   />
                 ))}
 
@@ -470,8 +489,8 @@ export default function CalendarView({
                     const endHour =
                       event.endTime.getHours() +
                       event.endTime.getMinutes() / 60;
-                    const top = startHour * 64; // 64px per hour (h-16)
-                    const height = Math.max((endHour - startHour) * 64, 32);
+                    const topMobile = startHour * 48; // 48px per hour on mobile (h-12)
+                    const heightMobile = Math.max((endHour - startHour) * 48, 24);
 
                     return (
                       <div
@@ -480,20 +499,20 @@ export default function CalendarView({
                           e.stopPropagation();
                           onEventClick(event);
                         }}
-                        className="absolute left-1 right-1 rounded p-2 overflow-hidden cursor-pointer hover:opacity-80"
+                        className="absolute left-0.5 md:left-1 right-0.5 md:right-1 rounded p-1 md:p-2 overflow-hidden cursor-pointer hover:opacity-80"
                         style={{
-                          top: `${top}px`,
-                          height: `${height}px`,
+                          top: `${topMobile}px`,
+                          height: `${heightMobile}px`,
                           backgroundColor: `${event.calendarColor}30`,
-                          borderLeft: `4px solid ${event.calendarColor}`,
+                          borderLeft: `3px solid ${event.calendarColor}`,
                         }}
                       >
-                        <div className="font-medium">{event.title}</div>
-                        <div className="text-sm text-[var(--muted-foreground)]">
+                        <div className="font-medium text-sm md:text-base truncate">{event.title}</div>
+                        <div className="text-xs md:text-sm text-[var(--muted-foreground)]">
                           {formatTime(event.startTime)} - {formatTime(event.endTime)}
                         </div>
                         {event.location && (
-                          <div className="text-xs text-[var(--muted-foreground)] mt-1">
+                          <div className="text-[10px] md:text-xs text-[var(--muted-foreground)] mt-1 hidden md:block">
                             {event.location}
                           </div>
                         )}
