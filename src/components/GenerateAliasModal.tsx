@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, AtSign, Check, Copy, Shuffle, BookOpen } from "lucide-react";
+import { X, Loader2, AtSign, Check, Copy, Shuffle, BookOpen, Crown, Sparkles } from "lucide-react";
 import { aliasesApi } from "@/lib/api";
 import { encryptEntry, sha256 } from "@/lib/crypto";
 import { getMasterPassword, getSaltUint8Array } from "@/lib/auth";
@@ -11,6 +11,10 @@ interface GenerateAliasModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  isPro?: boolean;
+  aliasCount?: number;
+  aliasLimit?: number | null;
+  onUpgrade?: () => void;
 }
 
 type AliasFormat = "random" | "descriptive";
@@ -19,6 +23,10 @@ export function GenerateAliasModal({
   isOpen,
   onClose,
   onSuccess,
+  isPro = false,
+  aliasCount = 0,
+  aliasLimit = 5,
+  onUpgrade,
 }: GenerateAliasModalProps) {
   const [format, setFormat] = useState<AliasFormat>("random");
   const [domain, setDomain] = useState("");
@@ -26,6 +34,18 @@ export function GenerateAliasModal({
   const [error, setError] = useState("");
   const [generatedAlias, setGeneratedAlias] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+
+  // Check if at limit
+  const isAtLimit = !isPro && aliasLimit !== null && aliasCount >= aliasLimit;
+
+  const handleUpgrade = async () => {
+    if (onUpgrade) {
+      setIsUpgrading(true);
+      onUpgrade();
+      // Note: onUpgrade will redirect to Stripe, so we don't need to set isUpgrading back to false
+    }
+  };
 
   const handleGenerate = async () => {
     setError("");
@@ -167,6 +187,55 @@ export function GenerateAliasModal({
               Done
             </button>
           </>
+        ) : isAtLimit ? (
+          // At limit - show upgrade prompt
+          <>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
+                <Crown className="w-8 h-8 text-amber-500" />
+              </div>
+              <h2 className="text-2xl font-semibold mb-2">Free Limit Reached</h2>
+              <p className="text-[var(--muted-foreground)]">
+                You&apos;ve used all {aliasLimit} aliases on the free plan
+              </p>
+            </div>
+
+            <div className="bg-[var(--muted)] rounded-lg p-4 mb-6">
+              <h3 className="font-semibold mb-2">Upgrade to Pro for:</h3>
+              <ul className="space-y-2 text-sm text-[var(--muted-foreground)]">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[var(--success)]" />
+                  Unlimited email aliases
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[var(--success)]" />
+                  Priority email delivery
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[var(--success)]" />
+                  Advanced analytics
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={handleUpgrade}
+              disabled={isUpgrading}
+              className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isUpgrading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Redirecting...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Upgrade to Pro
+                </>
+              )}
+            </button>
+          </>
         ) : (
           // Generate form
           <>
@@ -177,6 +246,11 @@ export function GenerateAliasModal({
               <h2 className="text-2xl font-semibold mb-2">Generate Alias</h2>
               <p className="text-[var(--muted-foreground)]">
                 Create a new @subkontinent.com email alias
+                {!isPro && aliasLimit !== null && (
+                  <span className="ml-1 text-xs">
+                    ({aliasLimit - aliasCount} remaining)
+                  </span>
+                )}
               </p>
             </div>
 

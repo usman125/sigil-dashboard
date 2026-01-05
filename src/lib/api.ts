@@ -17,6 +17,11 @@ export interface User {
   hasMasterPW: boolean;
   publicKey?: JsonWebKey;
   encryptedPrivateKey?: EncryptedPrivateKey;
+  // Subscription fields
+  isPro?: boolean;
+  stripeCustomerId?: string;
+  subscriptionStatus?: "active" | "canceled" | "past_due" | "trialing" | null;
+  subscriptionEndsAt?: string;
 }
 
 export interface AuthResponse {
@@ -196,9 +201,18 @@ export const authApi = {
   },
 };
 
+// Aliases API response with limit info
+export interface GetUserAliasesResponse {
+  success: boolean;
+  aliases: Alias[];
+  isPro: boolean;
+  aliasCount: number;
+  aliasLimit: number | null; // null for pro users
+}
+
 // Aliases API
 export const aliasesApi = {
-  getUserAliases: async (): Promise<{ success: boolean; aliases: Alias[] }> => {
+  getUserAliases: async (): Promise<GetUserAliasesResponse> => {
     return apiRequest("/aliases/user-aliases");
   },
 
@@ -280,6 +294,45 @@ export const emailsApi = {
       method: "POST",
       body: JSON.stringify(params),
     });
+  },
+};
+
+// Stripe subscription response types
+export interface SubscriptionResponse {
+  success: boolean;
+  data: {
+    isPro: boolean;
+    subscriptionStatus: "active" | "canceled" | "past_due" | "trialing" | null;
+    subscriptionEndsAt: string | null;
+  };
+}
+
+export interface CheckoutResponse {
+  success: boolean;
+  url: string;
+}
+
+export interface PortalResponse {
+  success: boolean;
+  url: string;
+}
+
+// Stripe API
+export const stripeApi = {
+  createCheckout: async (): Promise<CheckoutResponse> => {
+    return apiRequest("/stripe/create-checkout", {
+      method: "POST",
+    });
+  },
+
+  createPortal: async (): Promise<PortalResponse> => {
+    return apiRequest("/stripe/create-portal", {
+      method: "POST",
+    });
+  },
+
+  getSubscription: async (): Promise<SubscriptionResponse> => {
+    return apiRequest("/stripe/subscription");
   },
 };
 

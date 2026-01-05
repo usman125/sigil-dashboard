@@ -14,8 +14,10 @@ import {
   Forward,
   Bell,
   Mail,
+  Crown,
+  Sparkles,
 } from "lucide-react";
-import { aliasesApi, Alias } from "@/lib/api";
+import { aliasesApi, Alias, stripeApi } from "@/lib/api";
 import { decryptEntry } from "@/lib/crypto";
 import { getMasterPassword, getSaltUint8Array } from "@/lib/auth";
 import { formatDate, copyToClipboard, cn } from "@/lib/utils";
@@ -42,6 +44,10 @@ export default function AliasesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [forwardingAlias, setForwardingAlias] = useState<DecryptedAlias | null>(null);
+  // Pro tier state
+  const [isPro, setIsPro] = useState(false);
+  const [aliasLimit, setAliasLimit] = useState<number | null>(5);
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   // Open modal if generate=true in URL params
   useEffect(() => {
@@ -67,6 +73,10 @@ export default function AliasesPage() {
 
       const response = await aliasesApi.getUserAliases();
       const aliasesData = response.aliases || [];
+
+      // Update pro tier state
+      setIsPro(response.isPro || false);
+      setAliasLimit(response.aliasLimit);
 
       const decryptedAliases: DecryptedAlias[] = [];
       for (const alias of aliasesData) {
@@ -129,6 +139,24 @@ export default function AliasesPage() {
     }
   };
 
+  const handleUpgrade = async () => {
+    setIsUpgrading(true);
+    try {
+      const response = await stripeApi.createCheckout();
+      if (response.url) {
+        window.location.href = response.url;
+      }
+    } catch (error) {
+      console.error("Failed to create checkout:", error);
+      alert("Failed to start upgrade process. Please try again.");
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
+
+  // Calculate if at limit
+  const isAtLimit = !isPro && aliasLimit !== null && aliases.length >= aliasLimit;
+
   const filteredAliases = aliases.filter(
     (alias) =>
       alias.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,9 +169,28 @@ export default function AliasesPage() {
       <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Aliases</h1>
-          <p className="text-sm md:text-base text-[var(--muted-foreground)]">
-            Manage your email aliases
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm md:text-base text-[var(--muted-foreground)]">
+              Manage your email aliases
+            </p>
+            {/* Limit badge for free users */}
+            {!isPro && aliasLimit !== null && (
+              <span className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+                isAtLimit 
+                  ? "bg-amber-500/10 text-amber-500 border border-amber-500/30"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+              )}>
+                {aliases.length}/{aliasLimit} aliases
+              </span>
+            )}
+            {isPro && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/30">
+                <Crown className="w-3 h-3" />
+                Pro
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           <button
@@ -153,16 +200,63 @@ export default function AliasesPage() {
           >
             <RefreshCw className={cn("w-5 h-5", isRefreshing && "animate-spin")} />
           </button>
-          <button
-            onClick={() => setShowGenerateModal(true)}
-            className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="hidden sm:inline">Generate Alias</span>
-            <span className="sm:hidden">New</span>
-          </button>
+          {isAtLimit ? (
+            <button
+              onClick={handleUpgrade}
+              disabled={isUpgrading}
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base disabled:opacity-50"
+            >
+              {isUpgrading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+              <span className="hidden sm:inline">Upgrade to Pro</span>
+              <span className="sm:hidden">Upgrade</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowGenerateModal(true)}
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm md:text-base"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Generate Alias</span>
+              <span className="sm:hidden">New</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Upgrade Banner when at limit */}
+      {isAtLimit && (
+        <div className="mb-4 md:mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <Crown className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-amber-500">Free tier limit reached</h3>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  Upgrade to Pro for unlimited aliases and premium features
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleUpgrade}
+              disabled={isUpgrading}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {isUpgrading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Upgrade Now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative mb-4 md:mb-6">
@@ -337,6 +431,11 @@ export default function AliasesPage() {
       {aliases.length > 0 && (
         <div className="mt-4 text-center text-sm text-[var(--muted-foreground)]">
           {filteredAliases.length} of {aliases.length} aliases
+          {!isPro && aliasLimit !== null && (
+            <span className="ml-2">
+              ({aliasLimit - aliases.length} remaining)
+            </span>
+          )}
         </div>
       )}
 
@@ -345,6 +444,10 @@ export default function AliasesPage() {
         isOpen={showGenerateModal}
         onClose={() => setShowGenerateModal(false)}
         onSuccess={loadAliases}
+        isPro={isPro}
+        aliasCount={aliases.length}
+        aliasLimit={aliasLimit}
+        onUpgrade={handleUpgrade}
       />
 
       {/* Forwarding Settings Modal */}
