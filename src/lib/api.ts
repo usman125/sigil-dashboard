@@ -30,6 +30,13 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface DetectedDomain {
+  domain: string;
+  firstSeen: string;
+  lastSeen: string;
+  emailCount: number;
+}
+
 export interface Alias {
   _id: string;
   aliasId: string;
@@ -37,9 +44,27 @@ export interface Alias {
   ciphertext: number[];
   iv: number[];
   domain?: string;
+  primaryDomain?: string;
+  detectedDomains?: DetectedDomain[];
+  totalEmailCount?: number;
+  hasDomainMismatch?: boolean;
   forwardTo?: string;
   forwardMode?: "disabled" | "plaintext" | "notify";
   createdAt: string;
+}
+
+export interface AliasTrackingResponse {
+  success: boolean;
+  data: {
+    _id: string;
+    domain?: string;
+    primaryDomain?: string;
+    detectedDomains: DetectedDomain[];
+    totalEmailCount: number;
+    hasDomainMismatch: boolean;
+    uniqueDomainCount: number;
+    isUsedByMultipleServices: boolean;
+  };
 }
 
 export interface EncryptedEmailField {
@@ -262,6 +287,10 @@ export const aliasesApi = {
       method: "PATCH",
       body: JSON.stringify({ forwardTo, forwardMode }),
     });
+  },
+
+  getAliasTracking: async (id: string): Promise<AliasTrackingResponse> => {
+    return apiRequest(`/aliases/${id}/tracking`);
   },
 };
 
